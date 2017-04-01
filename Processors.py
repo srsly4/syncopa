@@ -96,13 +96,19 @@ class ToneGeneratorProcessor(DefaultProcessor):
 
         last_tone = primary_tone
 
-        for i in range(0, 3 + random.randrange(0, 5)):
-            tmp_poll = {tone for tone in harmonic_tones if tone != last_tone.index}
-            tone_shot = SeedRandomizer.random_from_sorted_set(tmp_poll)
-            tone_type_shoot = ToneType.Mol if random.random() < mol_chance else ToneType.Dur
-            selected = list({tone for tone in tones if tone.index == tone_shot and tone.type == tone_type_shoot})[0]
-            tone_sequence.append(selected)
-            last_tone = selected
+        # for i in range(0, 3 + random.randrange(0, 5)):
+        #     tmp_poll = {tone for tone in harmonic_tones if tone != last_tone.index}
+        #     tone_shot = SeedRandomizer.random_from_sorted_set(tmp_poll)
+        #     tone_type_shoot = ToneType.Mol if random.random() < mol_chance else ToneType.Dur
+        #     selected = list({tone for tone in tones if tone.index == tone_shot and tone.type == tone_type_shoot})[0]
+        #     tone_sequence.append(selected)
+        #     last_tone = selected
+
+        for i in range(0, 3+ random.randrange(0, 5)):
+            tone_probabilities = last_tone.next_tone_probability_list(self.results.singleton_tones)
+            tone_choosen = SeedRandomizer.random_from_probability_list(tone_probabilities)
+            tone_sequence.append(tone_choosen["tone"])
+            last_tone = tone_choosen["tone"]
 
         print("Tone sequence:")
         for tone in tone_sequence:
@@ -123,7 +129,7 @@ class SequenceSamplesGeneratorProcessor(DefaultProcessor):
                 'probability': 0.2
             }
         ]
-        sample_count = random.randrange(7, 12)
+        sample_count = random.randrange(8, 16)
         self.results.sequence_samples = []
         first_sample_flag = True
         for sample_ndx in range(0, sample_count):
@@ -222,7 +228,7 @@ class BarSampleGeneratorProcessor(DefaultProcessor):
             tone_sequence_ndx = 0 if tone_sequence_ndx >= len(self.results.tone_sequence) - 1 \
                 else tone_sequence_ndx + 1
 
-            if random.random() > 0.35:
+            if random.random() > 0.5:
                 bar.tones[bar.bar_size / 2] = self.results.tone_sequence[tone_sequence_ndx]
                 tone_sequence_ndx = 0 if tone_sequence_ndx >= len(self.results.tone_sequence) - 1 \
                     else tone_sequence_ndx + 1
@@ -385,17 +391,17 @@ class MidiGeneratorProcessor(DefaultProcessor):
                 midi_tone_data.append([
                     tone_beat, tone.get_note_index_by_octave(3), 100, tone_midi_length
                 ])
-                # midi_tone_data.append([
-                #     tone_beat, tone.get_note_index_by_octave(4)+7, 100, tone_midi_length
-                # ])
-                # if tone.type == ToneType.Dur:
-                #     midi_tone_data.append([
-                #         tone_beat, tone.get_note_index_by_octave(4) + 4, 100, tone_midi_length
-                #     ])
-                # if tone.type == ToneType.Mol:
-                #     midi_tone_data.append([
-                #         tone_beat, tone.get_note_index_by_octave(4) + 3, 100, tone_midi_length
-                #     ])
+                midi_tone_data.append([
+                    tone_beat, tone.get_note_index_by_octave(4)+7, 100, tone_midi_length
+                ])
+                if tone.type == ToneType.Dur:
+                    midi_tone_data.append([
+                        tone_beat, tone.get_note_index_by_octave(4) + 4, 100, tone_midi_length
+                    ])
+                if tone.type == ToneType.Mol:
+                    midi_tone_data.append([
+                        tone_beat, tone.get_note_index_by_octave(4) + 3, 100, tone_midi_length
+                    ])
                 tone_beat += tone_midi_length
 
         midi.add_track(midi_data)

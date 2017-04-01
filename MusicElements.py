@@ -88,6 +88,22 @@ class Tone:
                 ret.add(primary+8)
         return ret
 
+    def next_tone_probability_list(self, tones: list):
+        complementaries = self.complementary(self, tones)
+        alternatives = self.alternatives(self, tones)
+        prob_list = []
+        for t in complementaries:
+            prob_list.append({
+                'tone': t,
+                'probability': 1
+            })
+        for t in alternatives:
+            prob_list.append({
+                'tone': t,
+                'probability': 0.75
+            })
+        return prob_list
+
     @staticmethod
     def complementary(current, tones: set) -> set:
         compl = {tone for tone in tones
@@ -187,6 +203,7 @@ class Note:
         if (from_tone.type == ToneType.Mol and to_tone.type == ToneType.Dur
                 and (delta_note_index == 8 or delta_note_index == 3)):
             self.pitch += 1
+        # Dur -> Mol case
         if (from_tone.type == ToneType.Dur and to_tone.type == ToneType.Mol
                 and (delta_note_index == 9 or delta_note_index == 4)):
             self.pitch -= 1
