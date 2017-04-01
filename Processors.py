@@ -1,6 +1,8 @@
 import json
 import random
 import copy
+import logging
+
 from miditime.miditime import MIDITime
 
 import SeedRandomizer
@@ -82,27 +84,18 @@ class ToneGeneratorProcessor(DefaultProcessor):
         self.results.singleton_tones = tones
         primary_tone = SeedRandomizer.random_from_sorted_set(tones)
         self.results.primary_tone = primary_tone
-        print("Primary tone: " + str(primary_tone))
+        logging.info("Primary tone: " + str(primary_tone))
 
         # `sadness` probability
         mol_chance = 0.15 + random.random() * 0.6
 
-        print("Sadness: " + str(mol_chance))
+        logging.info("Sadness probability: " + str(mol_chance))
 
         tone_sequence = [primary_tone]
 
         harmonic_notes = primary_tone.get_tone_note_indexes()
-        harmonic_tones = {note % 12 for note in harmonic_notes}
 
         last_tone = primary_tone
-
-        # for i in range(0, 3 + random.randrange(0, 5)):
-        #     tmp_poll = {tone for tone in harmonic_tones if tone != last_tone.index}
-        #     tone_shot = SeedRandomizer.random_from_sorted_set(tmp_poll)
-        #     tone_type_shoot = ToneType.Mol if random.random() < mol_chance else ToneType.Dur
-        #     selected = list({tone for tone in tones if tone.index == tone_shot and tone.type == tone_type_shoot})[0]
-        #     tone_sequence.append(selected)
-        #     last_tone = selected
 
         for i in range(0, 3+ random.randrange(0, 5)):
             tone_probabilities = last_tone.next_tone_probability_list(self.results.singleton_tones)
@@ -110,7 +103,7 @@ class ToneGeneratorProcessor(DefaultProcessor):
             tone_sequence.append(tone_choosen["tone"])
             last_tone = tone_choosen["tone"]
 
-        print("Tone sequence:")
+        logging.info("Tone sequence:")
         for tone in tone_sequence:
             print(str(tone) + " ", end='')
         print("")
@@ -136,6 +129,7 @@ class SequenceSamplesGeneratorProcessor(DefaultProcessor):
         sample_count = random.randrange(6, self.max_sample_count)
         self.results.sequence_samples = []
         first_sample_flag = True
+        logging.info("Samples:")
         for sample_ndx in range(0, sample_count):
             sample_type = SeedRandomizer.random_from_probability_list(sample_types)
             sample_length_rest = sample_length = sample_type['length']
@@ -195,7 +189,7 @@ class SequenceSamplesGeneratorProcessor(DefaultProcessor):
 
             sample = SequenceSample(self.results.primary_tone, sample_notes)
             self.results.sequence_samples.append(sample)
-            print(str(sample))
+            logging.info(str(sample))
 
         # now generate `friend` connections between samples
         sample_connections = random.randrange(2, sample_count // 2)
@@ -228,6 +222,7 @@ class BarSampleGeneratorProcessor(DefaultProcessor):
         first_sequence_in_all_bars = True
         previous_sequence: SequenceSample
         tone_sequence_ndx = 0
+        logging.info("Bars:")
         for bar_ndx in range(0, self.min_bar_count):
             bar = Bar(self.results.default_bar_size)
             if bar_ndx == 0:
@@ -284,7 +279,7 @@ class BarSampleGeneratorProcessor(DefaultProcessor):
                 bar_rest = bar.get_space_left()
 
             bars.append(bar)
-            print(str(bar))
+            logging.info(str(bar))
             self.results.bars = bars
 
 
@@ -296,6 +291,7 @@ class BarGeneratorProcessor(DefaultProcessor):
         # generate bars
         first_note_in_all_bars = True
         previous_note: Note
+        logging.info("Bars")
         for bar_gen_ndx in range(0, 64):
             bar = Bar(self.results.default_bar_size)
             # in each bar generate tones
@@ -363,23 +359,24 @@ class BarGeneratorProcessor(DefaultProcessor):
                 note.finalized = True
                 previous_note = note
 
-            print(str(bar))
+            logging.info(str(bar))
             bars.append(bar)
+        self.results.bars = bars
 
 
 class MidiGeneratorProcessor(DefaultProcessor):
     def __init__(self, results: ProcessorResults, midi_file: str, bpm: int):
-        self.midi_file = midi_file,
+        self.output_file: str = str(midi_file)
         self.bpm = bpm
         super(MidiGeneratorProcessor, self).__init__(results)
 
     def process(self):
-        print("Generating MIDI...")
-        bpm = 120
+        logging.info("Generating MIDI...")
+        bpm = self.bpm
         bar_bpm = 8
         bar_time = self.results.default_bar_size / bar_bpm
 
-        midi = MIDITime(bpm, "test.mid")
+        midi = MIDITime(bpm, self.output_file)
         midi_data = []
         midi_tone_data = []
 

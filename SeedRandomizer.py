@@ -9,7 +9,7 @@ def generate_seed():
         rand_bytes.append(random.randint(0, 255))
     hash_gen = hashlib.sha1()
     hash_gen.update(bytes(rand_bytes))
-    return hash_gen.hexdigest()
+    return hash_gen.hexdigest()[0:12]
 
 
 def random_from_sorted_set(input_set : set):
