@@ -398,18 +398,18 @@ class MidiGeneratorProcessor(DefaultProcessor):
                 for tone_ndx, tone in bar.tones.items():
                     tone_midi_length = bar_time * (tone_length / bar.bar_size)
                     midi_tone_data.append([
-                        tone_beat, tone.get_note_index_by_octave(3), 100, tone_midi_length
+                        tone_beat, tone.get_note_index_by_octave(3), 90, tone_midi_length
                     ])
                     midi_tone_data.append([
-                        tone_beat, tone.get_note_index_by_octave(3)+7, 100, tone_midi_length
+                        tone_beat, tone.get_note_index_by_octave(4)+7, 90, tone_midi_length
                     ])
                     if tone.type == ToneType.Dur:
                         midi_tone_data.append([
-                            tone_beat, tone.get_note_index_by_octave(3) + 4, 100, tone_midi_length
+                            tone_beat, tone.get_note_index_by_octave(4) + 4, 90, tone_midi_length
                         ])
                     if tone.type == ToneType.Mol:
                         midi_tone_data.append([
-                            tone_beat, tone.get_note_index_by_octave(3) + 3, 100, tone_midi_length
+                            tone_beat, tone.get_note_index_by_octave(4) + 3, 90, tone_midi_length
                         ])
 
                     tone_beat += tone_midi_length
