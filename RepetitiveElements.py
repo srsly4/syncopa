@@ -27,4 +27,7 @@ class SequenceSample:
 
     def __hash__(self, *args, **kwargs):
         return hash(sum(str(note) for note in self.notes))
+
+    def __str__(self):
+        return ", ".join([str(note) for note in self.notes])
 # end RepetitiveElements.py

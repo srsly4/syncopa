@@ -191,6 +191,7 @@ class SequenceSamplesGeneratorProcessor(DefaultProcessor):
 
             sample = SequenceSample(self.results.primary_tone, sample_notes)
             self.results.sequence_samples.append(sample)
+            print(str(sample))
 
         # now generate `friend` connections between samples
         sample_connections = random.randrange(3, sample_count // 2)
@@ -234,7 +235,7 @@ class BarSampleGeneratorProcessor(DefaultProcessor):
                     else tone_sequence_ndx + 1
 
             bar_rest = self.results.default_bar_size
-            min_tone_length = bar.bar_size // len(bar.tones)
+            max_sequence_length = bar.bar_size // len(bar.tones)
             while bar_rest > 0:
                 current_tone = bar.get_tone_for_note_index(bar.bar_size - bar_rest)
                 if first_sequence_in_all_bars:  # if first bar get first sequence (with a primary note)
@@ -244,7 +245,8 @@ class BarSampleGeneratorProcessor(DefaultProcessor):
                     # get every possible sequence
                     sequence_poll = \
                         [seq for seq in previous_sequence.friendly_samples
-                         if seq['sample'].get_length() <= bar_rest]
+                         if seq['sample'].get_length() <= max_sequence_length
+                            and seq['sample'].get_length() <= bar_rest]
                     if len(sequence_poll) > 0:
                         last_note: Note = previous_sequence.get_last_note()
                         next_probabilities = last_note.next_note_probability_in_tone(current_tone)
@@ -264,9 +266,10 @@ class BarSampleGeneratorProcessor(DefaultProcessor):
                         sequence = sequence_shot['sample']
                     else:  # quite impossible-like
                         sequence = random.choice([seq for seq in self.results.sequence_samples
-                                                  if seq.get_length() <= min(bar_rest, min_tone_length)])
+                                                  if seq.get_length() <= min(bar_rest, max_sequence_length)])
 
-                for note in sequence.get_transposed_notes(current_tone):
+                sequence_transponed_notes = sequence.get_transposed_notes(current_tone)
+                for note in sequence_transponed_notes:
                     bar.append_note(note)
 
                 previous_sequence = sequence
