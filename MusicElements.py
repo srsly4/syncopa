@@ -79,11 +79,13 @@ class Tone:
         ret = set()
         for octave in range(0, 8):
             primary = self.index + octave*12
-            ret = ret.union({primary, primary + 2, primary + 5, primary + 7, primary + 9, primary + 11})
+            ret = ret.union({primary, primary + 2, primary + 5, primary + 7, primary + 11})
             if self.type == ToneType.Dur:
                 ret.add(primary+4)
-            if self.type == ToneType.Mol:
+                ret.add(primary+9)
+            if self.type == ToneType.Mol:  # harmonic mol range !!!
                 ret.add(primary+3)
+                ret.add(primary+8)
         return ret
 
     @staticmethod
@@ -175,6 +177,19 @@ class Note:
                 note['probability'] = range_probabilities[note['range_delta']]
 
         return [note for note in probability_list if note['probability'] > 0]
+
+    def transpose_note(self, from_tone: Tone, to_tone: Tone):
+        delta_tone = to_tone.get_note_index_by_octave(5) - from_tone.get_note_index_by_octave(5)
+        primary_note_index = to_tone.get_note_index_by_octave(5) % 12
+        self.pitch += delta_tone
+        # Mol -> Dur case
+        delta_note_index = self.pitch % 12 - primary_note_index
+        if (from_tone.type == ToneType.Mol and to_tone.type == ToneType.Dur
+                and (delta_note_index == 8 or delta_note_index == 3)):
+            self.pitch += 1
+        if (from_tone.type == ToneType.Dur and to_tone.type == ToneType.Mol
+                and (delta_note_index == 9 or delta_note_index == 4)):
+            self.pitch -= 1
 
     def __str__(self):
         note_representations = [

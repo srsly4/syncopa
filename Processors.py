@@ -5,6 +5,7 @@ from miditime.miditime import MIDITime
 
 import SeedRandomizer
 from MusicElements import Tone, ToneType, Note, Bar
+from RepetitiveElements import SequenceSample
 
 
 class ProcessorResults:
@@ -110,6 +111,151 @@ class ToneGeneratorProcessor(DefaultProcessor):
         self.results.tone_sequence = tone_sequence
 
 
+class SequenceSamplesGeneratorProcessor(DefaultProcessor):
+    def process(self):
+        sample_types = [
+            {
+                'length': self.results.default_bar_size // 2,
+                'probability': 0.8
+            },
+            {
+                'length': self.results.default_bar_size,
+                'probability': 0.2
+            }
+        ]
+        sample_count = random.randrange(7, 12)
+        self.results.sequence_samples = []
+        first_sample_flag = True
+        for sample_ndx in range(0, sample_count):
+            sample_type = SeedRandomizer.random_from_probability_list(sample_types)
+            sample_length_rest = sample_length = sample_type['length']
+            sample_notes = []
+
+            # generate sample notes
+            while sample_length_rest > 0:
+                possible_sequences = [seq for seq in
+                                      self.results.elements_rhythm_sequences if seq['length'] <= sample_length_rest]
+                selected_seq = SeedRandomizer.random_from_probability_list(possible_sequences)
+
+                for seq_note in selected_seq['notes']:
+                    sample_notes.append(copy.copy(seq_note))
+
+                sample_length_rest -= selected_seq['length']
+
+            # now generate pitches of these notes
+            previous_note = Note(self.results.default_bar_size, self.results.elements_source['atomic']['quarter'])
+            previous_note.pitch = self.results.primary_tone.get_note_index_by_octave(5)
+            for note in sample_notes:
+                note_tone = self.results.primary_tone
+                if first_sample_flag:
+                    note.pitch = self.results.primary_tone.get_note_index_by_octave(5)
+                    first_sample_flag = False
+                elif note.silent:
+                    note.finalized = True
+                    continue
+                elif note.harmonic_flag:  # harmonic notes
+                    harmonic_range = note_tone.get_harmonic_note_indexes()
+                    note_neighbours = previous_note.get_neighbours(note_tone, top_border=84, gap=12)
+                    tone_range = note_tone.get_harmonic_note_indexes()
+
+                    probability_list = previous_note.next_note_probability_in_tone(note_tone)
+                    probability_list = [note for note in probability_list
+                                        if note['note_index'] in harmonic_range
+                                        and note['note_index'] in note_neighbours
+                                        and note['note_index'] in tone_range]
+                    if len(probability_list) == 0:
+                        # set the primary note of note tone
+                        note.pitch = note_tone.get_note_index_by_octave(5)
+                    else:
+                        note.pitch = SeedRandomizer.random_from_probability_list(probability_list)['note_index']
+
+                else:  # non-harmonic notes
+                    forbidden_set = note_tone.get_forbidden_note_indexes()  # wrong sounds to differentiate
+                    tone_range = note_tone.get_harmonic_note_indexes()
+
+                    probability_list = previous_note.next_note_probability_in_tone(note_tone)
+                    probability_list = [note for note in probability_list
+                                        if not note['note_index'] in forbidden_set
+                                        and note['note_index'] in tone_range]
+
+                    note.pitch = SeedRandomizer.random_from_probability_list(probability_list)['note_index']
+
+                note.finalized = True
+                previous_note = note
+
+            sample = SequenceSample(self.results.primary_tone, sample_notes)
+            self.results.sequence_samples.append(sample)
+
+        # now generate `friend` connections between samples
+        sample_connections = random.randrange(3, sample_count // 2)
+        for sample_ndx, sample in enumerate(self.results.sequence_samples):
+            shuffled = copy.copy(self.results.sequence_samples)
+            random.shuffle(shuffled)
+            sample_poll = [smp for smp in shuffled if smp is not sample]
+            conn_count = 0
+            for sample_friend in sample_poll:
+                sample.friendly_samples.append({
+                    'sample': sample_friend,
+                    'probability': random.random()
+                })
+                conn_count += 1
+                if conn_count >= sample_connections:
+                    break
+
+
+class BarSampleGeneratorProcessor(DefaultProcessor):
+    def __init__(self, results: ProcessorResults, min_bar_count: int):
+        super(BarSampleGeneratorProcessor, self).__init__(results)
+        self.min_bar_count = min_bar_count
+
+    def process(self):
+        bars = list()
+        first_sequence_in_all_bars = True
+        previous_note: Note
+        previous_sequence: SequenceSample
+        tone_sequence_ndx = 0
+        for bar_ndx in range(0, 64):
+            bar = Bar(self.results.default_bar_size)
+            if bar_ndx == 0:
+                bar.tones[0] = self.results.primary_tone
+            else:
+                bar.tones[0] = self.results.tone_sequence[tone_sequence_ndx]
+            tone_sequence_ndx = 0 if tone_sequence_ndx >= len(self.results.tone_sequence) - 1 \
+                else tone_sequence_ndx + 1
+
+            if random.random() > 0.35:
+                bar.tones[bar.bar_size / 2] = self.results.tone_sequence[tone_sequence_ndx]
+                tone_sequence_ndx = 0 if tone_sequence_ndx >= len(self.results.tone_sequence) - 1 \
+                    else tone_sequence_ndx + 1
+
+            bar_rest = self.results.default_bar_size
+            min_tone_length = bar.bar_size // len(bar.tones)
+            while bar_rest > 0:
+                if first_sequence_in_all_bars:  # if first bar get first sequence (with a primary note)
+                    sequence = self.results.sequence_samples[0]
+                    first_sequence_in_all_bars = False
+                else:
+                    sequence_poll = \
+                        [seq for seq in previous_sequence.friendly_samples
+                         if seq['sample'].get_length() <= bar_rest]
+                    if len(sequence_poll) > 0:
+                        sequence_shot = SeedRandomizer.random_from_probability_list(sequence_poll)
+                        sequence = sequence_shot['sample']
+                    else:
+                        sequence = random.choice([seq for seq in self.results.sequence_samples
+                                                  if seq.get_length() <= min(bar_rest, min_tone_length)])
+                current_tone = bar.get_tone_for_note_index(bar.bar_size - bar_rest)
+                for note in sequence.get_transposed_notes(current_tone):
+                    bar.append_note(note)
+
+                previous_sequence = sequence
+                bar_rest = bar.get_space_left()
+
+            bars.append(bar)
+            print(str(bar))
+            self.results.bars = bars
+
+
 class BarGeneratorProcessor(DefaultProcessor):
     def process(self):
         bars = list()
@@ -125,17 +271,17 @@ class BarGeneratorProcessor(DefaultProcessor):
                 bar.tones[0] = self.results.primary_tone
             else:
                 bar.tones[0] = self.results.tone_sequence[tone_sequence_ndx]
-                tone_sequence_ndx = 0 if tone_sequence_ndx >= len(self.results.tone_sequence) - 1\
+                tone_sequence_ndx = 0 if tone_sequence_ndx >= len(self.results.tone_sequence) - 1 \
                     else tone_sequence_ndx + 1
 
             if random.random() > 0.5:
                 bar.tones[bar.bar_size / 2] = self.results.tone_sequence[tone_sequence_ndx]
-                tone_sequence_ndx = 0 if tone_sequence_ndx >= len(self.results.tone_sequence) - 1\
+                tone_sequence_ndx = 0 if tone_sequence_ndx >= len(self.results.tone_sequence) - 1 \
                     else tone_sequence_ndx + 1
 
             bar_rest = bar.bar_size
             while bar_rest > 0:
-                possible_sequences =\
+                possible_sequences = \
                     [seq for seq in self.results.elements_rhythm_sequences if seq['length'] <= bar_rest]
                 selected_seq = SeedRandomizer.random_from_probability_list(possible_sequences)
 
