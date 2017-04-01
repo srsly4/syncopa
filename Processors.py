@@ -212,6 +212,10 @@ class SequenceSamplesGeneratorProcessor(DefaultProcessor):
                 conn_count += 1
                 if conn_count >= sample_connections:
                     break
+            sample.friendly_samples.append({
+                'sample': sample,
+                'probability': 0.4 * random.random()
+            })
 
 
 class BarSampleGeneratorProcessor(DefaultProcessor):

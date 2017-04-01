@@ -89,8 +89,8 @@ class Tone:
         return ret
 
     def next_tone_probability_list(self, tones: list):
-        complementaries = self.complementary(self, tones)
-        alternatives = self.alternatives(self, tones)
+        complementaries = self.complementary(self, set(tones))
+        alternatives = self.alternatives(self, set(tones))
         prob_list = []
         for t in complementaries:
             prob_list.append({
