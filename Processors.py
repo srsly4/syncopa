@@ -211,7 +211,6 @@ class BarSampleGeneratorProcessor(DefaultProcessor):
     def process(self):
         bars = list()
         first_sequence_in_all_bars = True
-        previous_note: Note
         previous_sequence: SequenceSample
         tone_sequence_ndx = 0
         for bar_ndx in range(0, 64):
@@ -231,20 +230,36 @@ class BarSampleGeneratorProcessor(DefaultProcessor):
             bar_rest = self.results.default_bar_size
             min_tone_length = bar.bar_size // len(bar.tones)
             while bar_rest > 0:
+                current_tone = bar.get_tone_for_note_index(bar.bar_size - bar_rest)
                 if first_sequence_in_all_bars:  # if first bar get first sequence (with a primary note)
                     sequence = self.results.sequence_samples[0]
                     first_sequence_in_all_bars = False
                 else:
+                    # get every possible sequence
                     sequence_poll = \
                         [seq for seq in previous_sequence.friendly_samples
                          if seq['sample'].get_length() <= bar_rest]
                     if len(sequence_poll) > 0:
+                        last_note: Note = previous_sequence.get_last_note()
+                        next_probabilities = last_note.next_note_probability_in_tone(current_tone)
+
+                        for seq in sequence_poll:
+                            next_note: Note = seq['sample'].get_first_note()
+                            found_flag = False
+                            for prob_note in next_probabilities:
+                                if next_note.pitch == prob_note['note_index']:
+                                    seq['probability'] *= prob_note['probability']
+                                    found_flag = True
+                                    break
+                            if not found_flag:  # if it's `strange` range jump make it almost impossible
+                                seq['probability'] = 0.01
+
                         sequence_shot = SeedRandomizer.random_from_probability_list(sequence_poll)
                         sequence = sequence_shot['sample']
-                    else:
+                    else:  # quite impossible-like
                         sequence = random.choice([seq for seq in self.results.sequence_samples
                                                   if seq.get_length() <= min(bar_rest, min_tone_length)])
-                current_tone = bar.get_tone_for_note_index(bar.bar_size - bar_rest)
+
                 for note in sequence.get_transposed_notes(current_tone):
                     bar.append_note(note)
 

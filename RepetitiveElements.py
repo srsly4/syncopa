@@ -19,6 +19,12 @@ class SequenceSample:
             copied_notes.append(copied_note)
         return copied_notes
 
+    def get_first_note(self):
+        return self.notes[0]
+
+    def get_last_note(self):
+        return self.notes[len(self.notes) - 1]
+
     def __hash__(self, *args, **kwargs):
         return hash(sum(str(note) for note in self.notes))
 # end RepetitiveElements.py
