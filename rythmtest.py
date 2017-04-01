@@ -26,7 +26,7 @@ def notes_from_element(element: str, atomic: dict):
 random.seed("dshsr")
 
 # load json data
-elements_f = open("rythmelements.json")
+elements_f = open("rhythmelements.json")
 elements = json.loads(elements_f.read())
 
 bar_size = elements['bar']['size']
