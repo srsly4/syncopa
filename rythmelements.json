@@ -1,0 +1,33 @@
+{
+  "bar": {
+    "size": 32
+  },
+  "atomic": {
+    "half": {
+      "representation": "d",
+      "length": 16
+    },
+    "quarter": {
+      "representation": "\u2669",
+      "length": 8
+    },
+    "eight": {
+      "representation": "\u266A",
+      "length": 4
+    },
+    "sixteenth": {
+      "representation": "*",
+      "length": 2
+    }
+  },
+  "elements": [
+    { "sequence": "*quarter,*quarter", "probability": 0.75},
+    { "sequence": "*quarter,#quarter", "probability": 0.55},
+    { "sequence": "*eight,eight,eight,eight", "probability": 1.25 },
+    { "sequence": "*eight,#eight,*eight,eight", "probability": 1 },
+    { "sequence": "*eight,eight", "probability": 1},
+    { "sequence": "#quarter,*eight,eight", "probability": 1},
+    { "sequence": "*half", "probability": 0.25 },
+    { "sequence": "*half,#half", "probability": 0.1 }
+  ]
+}
