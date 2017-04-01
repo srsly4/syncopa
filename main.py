@@ -3,7 +3,7 @@ import Processors
 
 print("Narcotic melody generator by srsly_4")
 
-random.seed("pies")
+random.seed("kant")
 
 results = Processors.ProcessorResults()
 

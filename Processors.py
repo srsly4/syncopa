@@ -118,6 +118,10 @@ class ToneGeneratorProcessor(DefaultProcessor):
 
 
 class SequenceSamplesGeneratorProcessor(DefaultProcessor):
+    def __init__(self, results: ProcessorResults, max_sample_count=10):
+        self.max_sample_count = max_sample_count
+        super(SequenceSamplesGeneratorProcessor, self).__init__(results)
+
     def process(self):
         sample_types = [
             {
@@ -129,7 +133,7 @@ class SequenceSamplesGeneratorProcessor(DefaultProcessor):
                 'probability': 0.2
             }
         ]
-        sample_count = random.randrange(8, 16)
+        sample_count = random.randrange(6, self.max_sample_count)
         self.results.sequence_samples = []
         first_sample_flag = True
         for sample_ndx in range(0, sample_count):
@@ -194,7 +198,7 @@ class SequenceSamplesGeneratorProcessor(DefaultProcessor):
             print(str(sample))
 
         # now generate `friend` connections between samples
-        sample_connections = random.randrange(3, sample_count // 2)
+        sample_connections = random.randrange(2, sample_count // 2)
         for sample_ndx, sample in enumerate(self.results.sequence_samples):
             shuffled = copy.copy(self.results.sequence_samples)
             random.shuffle(shuffled)
@@ -220,7 +224,7 @@ class BarSampleGeneratorProcessor(DefaultProcessor):
         first_sequence_in_all_bars = True
         previous_sequence: SequenceSample
         tone_sequence_ndx = 0
-        for bar_ndx in range(0, 64):
+        for bar_ndx in range(0, self.min_bar_count):
             bar = Bar(self.results.default_bar_size)
             if bar_ndx == 0:
                 bar.tones[0] = self.results.primary_tone
@@ -376,7 +380,6 @@ class MidiGeneratorProcessor(DefaultProcessor):
         midi_tone_data = []
 
         curr_beat = 0
-        tone_beat = 0
 
         for bar in self.results.bars:
             tone_beat = curr_beat

@@ -23,6 +23,8 @@
   "elements": [
     { "sequence": "*quarter,*quarter", "probability": 0.75},
     { "sequence": "*quarter,#quarter", "probability": 0.55},
+    { "sequence": "*sixteenth,sixteenth", "probability": 0.2},
+    { "sequence": "*sixteenth,sixteenth,*sixteenth,sixteenth", "probability": 0.3},
     { "sequence": "*eight,eight,eight,eight", "probability": 1.25 },
     { "sequence": "*eight,#eight,*eight,eight", "probability": 1 },
     { "sequence": "*eight,eight", "probability": 1},

@@ -179,7 +179,7 @@ class Note:
         probability_list = [note for note in probability_list if note['range_delta'] <= 8]
 
         range_probabilities = {
-            0: 0.5,  # pryma
+            0: 0.3,  # pryma
             1: 2,  # sekunda
             2: 0.2,  # tercja
             3: 0.5,  # kwarta
@@ -201,11 +201,13 @@ class Note:
         # Mol -> Dur case
         delta_note_index = self.pitch % 12 - primary_note_index
         if (from_tone.type == ToneType.Mol and to_tone.type == ToneType.Dur
-                and (delta_note_index == 8 or delta_note_index == 3)):
+                and (delta_note_index == 8 or delta_note_index == 3
+                     or delta_note_index == -9 or delta_note_index == -4)):
             self.pitch += 1
         # Dur -> Mol case
         if (from_tone.type == ToneType.Dur and to_tone.type == ToneType.Mol
-                and (delta_note_index == 9 or delta_note_index == 4)):
+                and (delta_note_index == 9 or delta_note_index == 4
+                     or delta_note_index == -8 or delta_note_index == -3)):
             self.pitch -= 1
 
     def __str__(self):
