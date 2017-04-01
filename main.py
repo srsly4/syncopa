@@ -19,6 +19,7 @@ parser.add_argument("-b", "--bars", type=int,
                     help="Count of generated bars")
 parser.add_argument("--bpm", type=int, default=120, help="Beats per minute (tempo)")
 parser.add_argument("--continuous", help="Generates melody using continuous sample creation", action="store_true")
+parser.add_argument("--rich", help="Another implementation of accompaniment", action="store_true")
 parser.add_argument("-v", "--verbose", help="Retrieves text transcription of generated melody", action="store_true")
 args = parser.parse_args()
 
@@ -39,7 +40,7 @@ processors = [
     Processors.SequenceSamplesGeneratorProcessor(results),
     Processors.BarSampleGeneratorProcessor(results, args.bars)
     if not args.continuous else Processors.BarGeneratorProcessor(results),
-    Processors.MidiGeneratorProcessor(results, output_file, args.bpm)
+    Processors.MidiGeneratorProcessor(results, output_file, args.bpm, args.rich)
 ]
 
 for processor in processors:
