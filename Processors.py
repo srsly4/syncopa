@@ -93,7 +93,6 @@ class ToneGeneratorProcessor(DefaultProcessor):
 
         tone_sequence = [primary_tone]
 
-        harmonic_notes = primary_tone.get_tone_note_indexes()
 
         last_tone = primary_tone
 
@@ -132,7 +131,7 @@ class SequenceSamplesGeneratorProcessor(DefaultProcessor):
         logging.info("Samples:")
         for sample_ndx in range(0, sample_count):
             sample_type = SeedRandomizer.random_from_probability_list(sample_types)
-            sample_length_rest = sample_length = sample_type['length']
+            sample_length_rest = sample_type['length']
             sample_notes = []
 
             # generate sample notes
@@ -365,9 +364,10 @@ class BarGeneratorProcessor(DefaultProcessor):
 
 
 class MidiGeneratorProcessor(DefaultProcessor):
-    def __init__(self, results: ProcessorResults, midi_file: str, bpm: int):
+    def __init__(self, results: ProcessorResults, midi_file: str, bpm: int, rich_mode=False):
         self.output_file: str = str(midi_file)
         self.bpm = bpm
+        self.rich_mode = rich_mode
         super(MidiGeneratorProcessor, self).__init__(results)
 
     def process(self):
@@ -388,28 +388,53 @@ class MidiGeneratorProcessor(DefaultProcessor):
                 note_midi_length = bar_time * (note.length / bar.bar_size)
                 if not note.silent:
                     midi_data.append([
-                        curr_beat, note.pitch, 127, note_midi_length
+                        curr_beat, note.pitch + (12 if self.rich_mode else 0), 127, note_midi_length
                     ])
                 curr_beat += note_midi_length
 
-            tone_length = self.results.default_bar_size // len(bar.tones.items())
-            for tone_ndx, tone in bar.tones.items():
-                tone_midi_length = bar_time * (tone_length / bar.bar_size)
-                midi_tone_data.append([
-                    tone_beat, tone.get_note_index_by_octave(3), 100, tone_midi_length
-                ])
-                midi_tone_data.append([
-                    tone_beat, tone.get_note_index_by_octave(4)+7, 100, tone_midi_length
-                ])
-                if tone.type == ToneType.Dur:
+            if not self.rich_mode:
+                tone_length = self.results.default_bar_size // len(bar.tones.items())
+                for tone_ndx, tone in bar.tones.items():
+                    tone_midi_length = bar_time * (tone_length / bar.bar_size)
                     midi_tone_data.append([
-                        tone_beat, tone.get_note_index_by_octave(4) + 4, 100, tone_midi_length
+                        tone_beat, tone.get_note_index_by_octave(3), 90, tone_midi_length
                     ])
-                if tone.type == ToneType.Mol:
                     midi_tone_data.append([
-                        tone_beat, tone.get_note_index_by_octave(4) + 3, 100, tone_midi_length
+                        tone_beat, tone.get_note_index_by_octave(4)+7, 90, tone_midi_length
                     ])
-                tone_beat += tone_midi_length
+                    if tone.type == ToneType.Dur:
+                        midi_tone_data.append([
+                            tone_beat, tone.get_note_index_by_octave(4) + 4, 90, tone_midi_length
+                        ])
+                    if tone.type == ToneType.Mol:
+                        midi_tone_data.append([
+                            tone_beat, tone.get_note_index_by_octave(4) + 3, 90, tone_midi_length
+                        ])
+
+                    tone_beat += tone_midi_length
+            else:
+                rich_tone_length = self.results.default_bar_size // 8
+                rich_tone_real_length = bar_time * (rich_tone_length / bar.bar_size)
+                tone_accomp_curr = 0
+                rich_tone_seq_ndx = 0
+                while tone_accomp_curr < bar.bar_size:
+                    rich_tone = bar.get_tone_for_note_index(tone_accomp_curr)
+                    rich_tone_seq = [
+                        rich_tone.get_note_index_by_octave(3),
+                        rich_tone.get_note_index_by_octave(4),
+                        rich_tone.get_note_index_by_octave(4) + 4
+                        if rich_tone.type == ToneType.Dur else
+                        rich_tone.get_note_index_by_octave(4) + 3,
+                        rich_tone.get_note_index_by_octave(4)+7,
+
+                    ]
+                    midi_tone_data.append([
+                        tone_beat, rich_tone_seq[rich_tone_seq_ndx], 90,
+                        rich_tone_real_length*(len(rich_tone_seq)-rich_tone_seq_ndx)
+                    ])
+                    rich_tone_seq_ndx = 0 if rich_tone_seq_ndx >= len(rich_tone_seq) - 1 else rich_tone_seq_ndx + 1
+                    tone_beat += rich_tone_real_length
+                    tone_accomp_curr += rich_tone_length
 
         midi.add_track(midi_data)
         midi.add_track(midi_tone_data)

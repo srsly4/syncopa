@@ -1,5 +1,5 @@
 import copy
-from MusicElements import Bar, Note, Tone, ToneType
+from MusicElements import Note, Tone, ToneType
 
 
 class SequenceSample:
@@ -13,7 +13,7 @@ class SequenceSample:
 
     def get_transposed_notes(self, tone: Tone):
         copied_notes = []
-        if (tone.type == ToneType.Mol and tone.index == 9):
+        if tone.type == ToneType.Mol and tone.index == 9:
             print("Am detected")
         for note in self.notes:
             copied_note: Note = copy.copy(note)
