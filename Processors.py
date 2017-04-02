@@ -93,7 +93,6 @@ class ToneGeneratorProcessor(DefaultProcessor):
 
         tone_sequence = [primary_tone]
 
-        harmonic_notes = primary_tone.get_tone_note_indexes()
 
         last_tone = primary_tone
 
@@ -132,7 +131,7 @@ class SequenceSamplesGeneratorProcessor(DefaultProcessor):
         logging.info("Samples:")
         for sample_ndx in range(0, sample_count):
             sample_type = SeedRandomizer.random_from_probability_list(sample_types)
-            sample_length_rest = sample_length = sample_type['length']
+            sample_length_rest = sample_type['length']
             sample_notes = []
 
             # generate sample notes
