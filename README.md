@@ -3,7 +3,7 @@ Narcotic melody generator.
 
 Generator uses tone-balanced sample creation for building harmonic and repeatable music.
 
-Requires installed library miditime: https://pypi.python.org/pypi/miditime
+Requires installed library miditime (by pip): https://pypi.python.org/pypi/miditime
 
 ## Usage
 `main.py [-h] [-s SEED] [-o OUTPUT] [-b BARS] [--bpm BPM] [--continuous]
@@ -21,7 +21,9 @@ Optional arguments:
 
 ## Good examples:
 * `qwerty` (with rich mode enabled)
+* `01b525321a3e` (with rich mode enabled)
 * `mementomori` (witch rich mode enabled)
+* `64adf9f13e41`
 * `seed`
 * `rawr`
 * `return`
