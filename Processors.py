@@ -73,6 +73,13 @@ class ElementsParserProcessor(DefaultProcessor):
 
 
 class ToneGeneratorProcessor(DefaultProcessor):
+
+    def __init__(self, results: ProcessorResults, tones: str = ""):
+        super().__init__(results)
+        self.given_tones = []
+        if tones != "":
+            self.given_tones = tones.split(",")
+
     def process(self):
         # generate all tones
         tones = set()
@@ -83,47 +90,83 @@ class ToneGeneratorProcessor(DefaultProcessor):
             tones.add(moltone)
 
         self.results.singleton_tones = tones
-        primary_tone = SeedRandomizer.random_from_sorted_set(tones)
-        self.results.primary_tone = primary_tone
-        logging.info("Primary tone: " + str(primary_tone))
 
-        # `sadness` probability
-        mol_chance = 0.15 + random.random() * 0.6
+        if len(self.given_tones) > 0:
+            tone_sequence = []
+            tone_length_sequence = []
+            for tone_str in self.given_tones:
+                seek_ndx = 0
+                half_tone = False
+                if tone_str[seek_ndx] == ".":
+                    seek_ndx += 1
+                    half_tone = True
 
-        logging.info("Sadness probability: " + str(mol_chance))
+                tone_map = {
+                    'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'H': 11, 'B': 10
+                }
 
-        tone_sequence = [primary_tone]
+                tone_chr = tone_str[seek_ndx]
+                seek_ndx += 1
+                tone_lvl = tone_map[tone_chr]
+                tone_mol = False
+                while seek_ndx < len(tone_str):
+                    if tone_str[seek_ndx] == 'b':
+                        tone_lvl -= 1
+                    if tone_str[seek_ndx] == 's':
+                        tone_lvl += 1
+                    if tone_str[seek_ndx] == 'm':
+                        tone_mol = True
+                    seek_ndx += 1
 
-        last_tone = primary_tone
-
-        for i in range(0, 3+ random.randrange(0, 5)):
-            tone_probabilities = last_tone.next_tone_probability_list(self.results.singleton_tones)
-            tone_choosen = SeedRandomizer.random_from_probability_list(tone_probabilities)
-            tone_sequence.append(tone_choosen["tone"])
-            last_tone = tone_choosen["tone"]
-
-        tone_length_sequence = []
-        seqence_sum = 0.0
-        for i in range(len(tone_sequence)):
-            if i == len(tone_sequence)-1:
-                if seqence_sum % 1.0 == 0.0:
-                    tone_length_sequence.append(1.0)
+                tone_lvl %= 12
+                if not tone_mol:
+                    tone_sequence.append(Tone(tone_lvl, ToneType.Dur))
                 else:
-                    tone_length_sequence.append(0.5)
-            elif i > 0 and tone_length_sequence[i-1] == 0.5\
-                    and (i == 1 or tone_length_sequence[i-2] == 1):
-                tone_length_sequence.append(0.5)
-            else:
-                tone_length_sequence.append(0.5 if random.random() > 0.33 else 1.0)
-            seqence_sum += tone_length_sequence[i]
+                    tone_sequence.append(Tone(tone_lvl, ToneType.Mol))
 
-        self.results.tone_length_sequence = tone_length_sequence
+                tone_length_sequence.append(0.5 if half_tone else 1.0)
+            self.results.primary_tone = tone_sequence[0]
+        else:
+            primary_tone = SeedRandomizer.random_from_sorted_set(tones)
+            self.results.primary_tone = primary_tone
+            logging.info("Primary tone: " + str(primary_tone))
+
+            # `sadness` probability
+            mol_chance = 0.15 + random.random() * 0.6
+
+            logging.info("Sadness probability: " + str(mol_chance))
+
+            tone_sequence = [primary_tone]
+
+            last_tone = primary_tone
+
+            for i in range(0, 3+ random.randrange(0, 5)):
+                tone_probabilities = last_tone.next_tone_probability_list(self.results.singleton_tones)
+                tone_choosen = SeedRandomizer.random_from_probability_list(tone_probabilities)
+                tone_sequence.append(tone_choosen["tone"])
+                last_tone = tone_choosen["tone"]
+
+            tone_length_sequence = []
+            seqence_sum = 0.0
+            for i in range(len(tone_sequence)):
+                if i == len(tone_sequence)-1:
+                    if seqence_sum % 1.0 == 0.0:
+                        tone_length_sequence.append(1.0)
+                    else:
+                        tone_length_sequence.append(0.5)
+                elif i > 0 and tone_length_sequence[i-1] == 0.5\
+                        and (i == 1 or tone_length_sequence[i-2] == 1):
+                    tone_length_sequence.append(0.5)
+                else:
+                    tone_length_sequence.append(0.5 if random.random() > 0.33 else 1.0)
+                seqence_sum += tone_length_sequence[i]
 
         logging.info("Tone sequence:")
         for ndx, tone in enumerate(tone_sequence):
             print(str(tone_length_sequence[ndx]) + str(tone) + " ", end='')
         print("")
         self.results.tone_sequence = tone_sequence
+        self.results.tone_length_sequence = tone_length_sequence
 
 
 class SequenceSamplesGeneratorProcessor(DefaultProcessor):

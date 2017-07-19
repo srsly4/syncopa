@@ -18,6 +18,7 @@ def parse_args():
     parser.add_argument("-b", "--bars", type=int,
                         default=32,
                         help="Count of generated bars")
+    parser.add_argument("-t", "--tones", type=str, default="")
     parser.add_argument("--bpm", type=int, default=120, help="Beats per minute (tempo)")
     parser.add_argument("--continuous", help="Generates melody using continuous sample creation", action="store_true")
     parser.add_argument("--rich", help="Another implementation of accompaniment", action="store_true")
@@ -42,7 +43,7 @@ def entrypoint():
     output_file = args.output
     processors = [
         Processors.ElementsParserProcessor(results, elements_file),
-        Processors.ToneGeneratorProcessor(results),
+        Processors.ToneGeneratorProcessor(results, args.tones),
         Processors.SequenceSamplesGeneratorProcessor(results),
         Processors.BarSampleGeneratorProcessor(results, args.bars)
         if not args.continuous else Processors.BarGeneratorProcessor(results),
