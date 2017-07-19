@@ -14,6 +14,7 @@ Optional arguments:
 * `-s SEED, --seed SEED` A seed to melody generation process
 * `-o OUTPUT, --output OUTPUT` Output file name
 * `-b BARS, --bars BARS` Count of generated bars
+* `-t TONES, --tones TONES` Force tone sequence (format: `C,Gm,Hbm,Fs`)
 * `--bpm BPM` Beats per minute (tempo)
 * `--continuous` Generates melody using continuous sample creation
 * `--rich` Another implementation of accompaniment
@@ -27,6 +28,7 @@ Optional arguments:
 * `seed`
 * `rawr`
 * `return`
+* `-t D,Hm,A,G -s 15d07a69ed4a`
 
 # Orignal task content
 
