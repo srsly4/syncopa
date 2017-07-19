@@ -20,6 +20,7 @@ class ProcessorResults:
         self.singleton_tones = []
         self.primary_tone = None
         self.tone_sequence = []
+        self.tone_length_sequence = []
         self.sequence_samples = []
 
 
@@ -93,7 +94,6 @@ class ToneGeneratorProcessor(DefaultProcessor):
 
         tone_sequence = [primary_tone]
 
-
         last_tone = primary_tone
 
         for i in range(0, 3+ random.randrange(0, 5)):
@@ -102,9 +102,26 @@ class ToneGeneratorProcessor(DefaultProcessor):
             tone_sequence.append(tone_choosen["tone"])
             last_tone = tone_choosen["tone"]
 
+        tone_length_sequence = []
+        seqence_sum = 0.0
+        for i in range(len(tone_sequence)):
+            if i == len(tone_sequence)-1:
+                if seqence_sum % 1.0 == 0.0:
+                    tone_length_sequence.append(1.0)
+                else:
+                    tone_length_sequence.append(0.5)
+            elif i > 0 and tone_length_sequence[i-1] == 0.5\
+                    and (i == 1 or tone_length_sequence[i-2] == 1):
+                tone_length_sequence.append(0.5)
+            else:
+                tone_length_sequence.append(0.5 if random.random() > 0.33 else 1.0)
+            seqence_sum += tone_length_sequence[i]
+
+        self.results.tone_length_sequence = tone_length_sequence
+
         logging.info("Tone sequence:")
-        for tone in tone_sequence:
-            print(str(tone) + " ", end='')
+        for ndx, tone in enumerate(tone_sequence):
+            print(str(tone_length_sequence[ndx]) + str(tone) + " ", end='')
         print("")
         self.results.tone_sequence = tone_sequence
 
@@ -221,20 +238,29 @@ class BarSampleGeneratorProcessor(DefaultProcessor):
         first_sequence_in_all_bars = True
         previous_sequence: SequenceSample
         tone_sequence_ndx = 0
+        tone_length_seqence_ndx = 0
         logging.info("Bars:")
         for bar_ndx in range(0, self.min_bar_count):
             bar = Bar(self.results.default_bar_size)
+
+            # always start with a primary tone
             if bar_ndx == 0:
                 bar.tones[0] = self.results.primary_tone
             else:
                 bar.tones[0] = self.results.tone_sequence[tone_sequence_ndx]
+
             tone_sequence_ndx = 0 if tone_sequence_ndx >= len(self.results.tone_sequence) - 1 \
                 else tone_sequence_ndx + 1
 
-            if random.random() > 0.5:
+            if self.results.tone_length_sequence[tone_length_seqence_ndx] == 0.5:
                 bar.tones[bar.bar_size / 2] = self.results.tone_sequence[tone_sequence_ndx]
                 tone_sequence_ndx = 0 if tone_sequence_ndx >= len(self.results.tone_sequence) - 1 \
                     else tone_sequence_ndx + 1
+                tone_length_seqence_ndx = 0 if tone_length_seqence_ndx >= len(self.results.tone_length_sequence) - 1 \
+                    else tone_length_seqence_ndx + 1
+
+            tone_length_seqence_ndx = 0 if tone_length_seqence_ndx >= len(self.results.tone_length_sequence) - 1 \
+                else tone_length_seqence_ndx + 1
 
             bar_rest = self.results.default_bar_size
             max_sequence_length = bar.bar_size // len(bar.tones)
